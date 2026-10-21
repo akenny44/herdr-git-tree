@@ -1,0 +1,24 @@
+id = "herdr-git-tree"
+name = "herdr-git-tree"
+version = "0.1.0"
+description = "Interactive commit graph of the focused pane's repository: branches, merges and tags."
+# 0.9.0 resolves a relative pane command against the plugin root.
+min_herdr_version = "0.9.0"
+platforms = ["macos", "linux"]
+
+# Runs on `herdr plugin install`; `herdr plugin link` skips it, so build by hand there.
+[[build]]
+command = ["sh", "scripts/build.sh"]
+
+[[panes]]
+id = "tree"
+title = "git tree"
+placement = "tab"
+command = ["bin/git-tree"]
+
+# Bind it in ~/.config/herdr/config.toml (see README): plugins cannot declare keys.
+[[actions]]
+id = "open"
+title = "Open git tree"
+contexts = ["pane", "workspace"]
+command = ["bin/git-tree", "--herdr-open"]

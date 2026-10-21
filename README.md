@@ -13,7 +13,38 @@ lanes, branch/tag labels and a detail panel for the selected commit.
  ●───╯ c7d66bf add readme · Alice, 3 days ago
 ```
 
-## Install
+## herdr plugin
+
+In [herdr](https://herdr.dev), `prefix+t` opens the graph of the focused pane's
+repository in a new tab; `q` closes it.
+
+```sh
+herdr plugin install akenny44/herdr-git-tree
+```
+
+Installing builds the binary, so Go must be on the machine. herdr plugins
+cannot declare keybindings, so add the default one to
+`~/.config/herdr/config.toml`, then run `herdr server reload-config`:
+
+```toml
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "herdr-git-tree.open"
+description = "open git tree in a new tab"
+```
+
+The tab opens in the directory the focused pane is in now (its foreground
+process's cwd), not the one it was started in.
+
+To work on the plugin from a local checkout:
+
+```sh
+sh scripts/build.sh                # herdr plugin link does not build
+herdr plugin link "$PWD"
+```
+
+## Standalone install
 
 Requires Go 1.27+.
 
