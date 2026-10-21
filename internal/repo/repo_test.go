@@ -1,4 +1,4 @@
-package main
+package repo
 
 import (
 	"os"
@@ -69,5 +69,20 @@ func TestChangedFiles(t *testing.T) {
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("ChangedFiles(%s) = %v, want %v", tc.hash.String()[:7], got, tc.want)
 		}
+	}
+}
+
+func TestSortCommitsChildrenFirst(t *testing.T) {
+	// child is dated older than its parent: clock skew must not reorder them.
+	parent := &Commit{Hash: plumbing.Hash{1}, Committed: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
+	child := &Commit{Hash: plumbing.Hash{2}, Parents: []plumbing.Hash{parent.Hash}, Committed: parent.Committed.Add(-time.Hour)}
+	commits := []*Commit{parent, child}
+	set := map[plumbing.Hash]*Commit{}
+	for _, c := range commits {
+		set[c.Hash] = c
+	}
+	sorted := sortCommits(set)
+	if sorted[0] != commits[1] || sorted[1] != commits[0] {
+		t.Fatalf("child must come before its parent")
 	}
 }

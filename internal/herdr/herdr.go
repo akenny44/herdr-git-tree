@@ -1,4 +1,4 @@
-package main
+package herdr
 
 import (
 	"encoding/json"
@@ -15,10 +15,10 @@ const (
 	tabLabel  = "Git-tree"
 )
 
-// openInHerdr is the plugin's `open` action: it opens the tree pane in the
+// Open is the plugin's `open` action: it opens the tree pane in the
 // repository the focused pane is in now, not the one it was launched from, or
 // switches to the tab already showing that repository.
-func openInHerdr() error {
+func Open() error {
 	herdr := os.Getenv("HERDR_BIN_PATH")
 	if herdr == "" {
 		herdr = "herdr"

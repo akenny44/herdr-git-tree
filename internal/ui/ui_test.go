@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -7,10 +7,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
+
+	"herdr-git-tree/internal/repo"
+	"herdr-git-tree/internal/repo/repotest"
 )
 
 func TestMouseSelectsClickedCommit(t *testing.T) {
-	var m tea.Model = newModel("repo", nil, history("d:c", "c:b", "b:a", "a:"))
+	m := New("repo", nil, repotest.History("d:c", "c:b", "b:a", "a:"))
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 30})
 
 	click := func(y int) {
@@ -35,11 +38,11 @@ func TestMouseSelectsClickedCommit(t *testing.T) {
 }
 
 func TestDetailPanelListsChangedFiles(t *testing.T) {
-	m := newModel("repo", nil, history("b:a", "a:"))
+	m := New("repo", nil, repotest.History("b:a", "a:")).(model)
 	m.width, m.height = 60, 20
-	files := []FileChange{{'M', "main.go"}, {'A', "some/deeply/nested/directory/file.go"}}
+	files := []repo.FileChange{{Status: 'M', Path: "main.go"}, {Status: 'A', Path: "some/deeply/nested/directory/file.go"}}
 	for i := range 8 {
-		files = append(files, FileChange{'D', fmt.Sprintf("old%d.go", i)})
+		files = append(files, repo.FileChange{Status: 'D', Path: fmt.Sprintf("old%d.go", i)})
 	}
 	m.files[m.commits[0].Hash] = changedFiles{files: files}
 

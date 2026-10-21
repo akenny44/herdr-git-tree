@@ -9,6 +9,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/go-git/go-git/v5"
+
+	"herdr-git-tree/internal/herdr"
+	"herdr-git-tree/internal/repo"
+	"herdr-git-tree/internal/ui"
 )
 
 func main() {
@@ -17,7 +21,7 @@ func main() {
 		path = os.Args[1]
 	}
 	if path == "--herdr-open" {
-		if err := openInHerdr(); err != nil {
+		if err := herdr.Open(); err != nil {
 			fail("%v", err)
 		}
 		return
@@ -26,7 +30,7 @@ func main() {
 		path = abs
 	}
 
-	repo, commits, err := LoadCommits(path)
+	r, commits, err := repo.LoadCommits(path)
 	if errors.Is(err, git.ErrRepositoryNotExists) {
 		fail("%s is not a git repository", path)
 	}
@@ -37,7 +41,7 @@ func main() {
 		fail("%s has no commits yet", path)
 	}
 
-	if _, err := tea.NewProgram(newModel(path, repo, commits), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
+	if _, err := tea.NewProgram(ui.New(path, r, commits), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
 		fail("%v", err)
 	}
 }

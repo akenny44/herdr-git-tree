@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -10,6 +10,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+
+	"herdr-git-tree/internal/graph"
+	"herdr-git-tree/internal/repo"
 )
 
 const detailHeight = 8
@@ -31,8 +34,8 @@ var (
 type model struct {
 	path    string
 	repo    *git.Repository
-	commits []*Commit
-	rows    []Row
+	commits []*repo.Commit
+	rows    []graph.Row
 	files   map[plumbing.Hash]changedFiles
 	cursor  int
 	offset  int
@@ -41,12 +44,12 @@ type model struct {
 }
 
 type changedFiles struct {
-	files []FileChange
+	files []repo.FileChange
 	err   error
 }
 
-func newModel(path string, repo *git.Repository, commits []*Commit) model {
-	return model{path: path, repo: repo, commits: commits, rows: Layout(commits), files: map[plumbing.Hash]changedFiles{}}
+func New(path string, r *git.Repository, commits []*repo.Commit) tea.Model {
+	return model{path: path, repo: r, commits: commits, rows: graph.Layout(commits), files: map[plumbing.Hash]changedFiles{}}
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -107,7 +110,7 @@ func (m model) loadFiles() {
 	}
 	h := m.commits[m.cursor].Hash
 	if _, ok := m.files[h]; !ok {
-		files, err := ChangedFiles(m.repo, h)
+		files, err := repo.ChangedFiles(m.repo, h)
 		m.files[h] = changedFiles{files, err}
 	}
 }

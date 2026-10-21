@@ -1,9 +1,11 @@
-package main
+package graph
 
 import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
+
+	"herdr-git-tree/internal/repo"
 )
 
 // Cell is one lane of a graph row: its glyph, then the character drawn
@@ -28,7 +30,7 @@ func (r Row) String() string {
 
 // Layout assigns each commit a lane and draws one graph row per commit.
 // commits must list children before parents.
-func Layout(commits []*Commit) []Row {
+func Layout(commits []*repo.Commit) []Row {
 	var lanes []plumbing.Hash // the commit each lane is waiting for
 	var colors []int
 	nextColor := 0
