@@ -34,8 +34,10 @@ command = "herdr-git-tree.open"
 description = "open git tree in a new tab"
 ```
 
-The tab opens in the directory the focused pane is in now (its foreground
-process's cwd), not the one it was started in.
+The tab shows the repository the focused pane is in now (its foreground
+process's cwd), not the one it was started in. If the workspace already has a
+git tree tab on that repository, `prefix+t` switches to it instead of opening
+another one.
 
 To work on the plugin from a local checkout:
 

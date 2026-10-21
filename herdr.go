@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/go-git/go-git/v5"
 )
 
-const pluginID = "herdr-git-tree"
+const (
+	pluginID  = "herdr-git-tree"
+	paneTitle = "git tree" // the manifest pane's title, which herdr uses as its label
+)
 
 // openInHerdr is the plugin's `open` action: it opens the tree pane in the
-// directory the focused pane is in now, not the one it was launched from.
+// repository the focused pane is in now, not the one it was launched from, or
+// switches to the tab already showing that repository.
 func openInHerdr() error {
 	herdr := os.Getenv("HERDR_BIN_PATH")
 	if herdr == "" {
@@ -30,6 +36,17 @@ func openInHerdr() error {
 	if ctx.FocusedPaneID != "" {
 		if live := foregroundCwd(herdr, ctx.FocusedPaneID); live != "" {
 			cwd = live
+		}
+	}
+
+	cwd = repoRoot(cwd)
+
+	if ctx.WorkspaceID != "" && cwd != "" {
+		out, err := exec.Command(herdr, "pane", "list", "--workspace", ctx.WorkspaceID).Output()
+		if err == nil {
+			if tab := findTreeTab(out, cwd); tab != "" {
+				return exec.Command(herdr, "tab", "focus", tab).Run()
+			}
 		}
 	}
 
@@ -61,4 +78,44 @@ func foregroundCwd(herdr, paneID string) string {
 		return ""
 	}
 	return resp.Result.Pane.ForegroundCwd
+}
+
+// repoRoot returns the top of the git worktree containing dir, or dir itself
+// when it is not in one (the pane then reports the error).
+func repoRoot(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	repo, err := git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		return dir
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		return dir
+	}
+	return wt.Filesystem.Root()
+}
+
+// findTreeTab returns the tab of a tree pane opened on root, given the JSON
+// output of `herdr pane list`.
+func findTreeTab(paneList []byte, root string) string {
+	var resp struct {
+		Result struct {
+			Panes []struct {
+				Label string `json:"label"`
+				Cwd   string `json:"cwd"`
+				TabID string `json:"tab_id"`
+			} `json:"panes"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(paneList, &resp) != nil {
+		return ""
+	}
+	for _, p := range resp.Result.Panes {
+		if p.Label == paneTitle && p.Cwd == root {
+			return p.TabID
+		}
+	}
+	return ""
 }
