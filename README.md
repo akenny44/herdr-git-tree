@@ -2,7 +2,8 @@
 
 Interactive terminal viewer for a git repository's commit graph: every commit
 reachable from HEAD, local branches, remote branches and tags, with colored
-lanes, branch/tag labels and a detail panel for the selected commit.
+lanes, branch/tag labels and a detail panel for the selected commit: its
+metadata and message on the left, the files it changes on the right.
 
 ```
  ●     911ab2d (HEAD -> main) after merge · Alice, 2 hours ago

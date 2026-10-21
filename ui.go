@@ -8,6 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 const detailHeight = 8
@@ -22,20 +24,29 @@ var (
 	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	cursorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true)
 	boldStyle   = lipgloss.NewStyle().Bold(true)
+
+	statusColors = map[byte]lipgloss.Color{'A': "2", 'M': "3", 'D': "1", 'R': "6"}
 )
 
 type model struct {
 	path    string
+	repo    *git.Repository
 	commits []*Commit
 	rows    []Row
+	files   map[plumbing.Hash]changedFiles
 	cursor  int
 	offset  int
 	width   int
 	height  int
 }
 
-func newModel(path string, commits []*Commit) model {
-	return model{path: path, commits: commits, rows: Layout(commits)}
+type changedFiles struct {
+	files []FileChange
+	err   error
+}
+
+func newModel(path string, repo *git.Repository, commits []*Commit) model {
+	return model{path: path, repo: repo, commits: commits, rows: Layout(commits), files: map[plumbing.Hash]changedFiles{}}
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -85,7 +96,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.cursor >= m.offset+m.listHeight() {
 		m.offset = m.cursor - m.listHeight() + 1
 	}
+	m.loadFiles()
 	return m, nil
+}
+
+// loadFiles diffs the selected commit once; the result is kept for later visits.
+func (m model) loadFiles() {
+	if m.repo == nil || len(m.commits) == 0 {
+		return
+	}
+	h := m.commits[m.cursor].Hash
+	if _, ok := m.files[h]; !ok {
+		files, err := ChangedFiles(m.repo, h)
+		m.files[h] = changedFiles{files, err}
+	}
 }
 
 func (m model) View() string {
@@ -108,9 +132,14 @@ func (m model) View() string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(dimStyle.Render(strings.Repeat("─", m.width)) + "\n")
-	for _, line := range m.details() {
-		b.WriteString(ansi.Truncate(line, m.width, "…") + "\n")
+	leftWidth := m.width / 2
+	rightWidth := max(0, m.width-leftWidth-1)
+	b.WriteString(dimStyle.Render(strings.Repeat("─", leftWidth)+"┬"+strings.Repeat("─", rightWidth)) + "\n")
+	files := m.fileList(rightWidth - 1)
+	for i, line := range m.details() {
+		line = ansi.Truncate(line, leftWidth, "…")
+		line += strings.Repeat(" ", leftWidth-ansi.StringWidth(line))
+		b.WriteString(line + dimStyle.Render("│") + ansi.Truncate(" "+files[i], rightWidth, "…") + "\n")
 	}
 	b.WriteString(dimStyle.Render("↑/↓ j/k move · PgUp/PgDn page · g/G top/bottom · q quit"))
 	return b.String()
@@ -173,6 +202,47 @@ func (m model) details() []string {
 		lines = append(lines, "")
 	}
 	return lines[:detailHeight-1]
+}
+
+// fileList fits the selected commit's changed files in the detail panel's
+// height, paths cut from the left so the file name stays visible.
+func (m model) fileList(width int) []string {
+	lines := make([]string, 0, detailHeight-1)
+	if len(m.commits) > 0 {
+		if c, ok := m.files[m.commits[m.cursor].Hash]; ok {
+			if c.err != nil {
+				lines = append(lines, dimStyle.Render(c.err.Error()))
+			} else {
+				count := fmt.Sprintf("%d files changed", len(c.files))
+				if len(c.files) == 1 {
+					count = "1 file changed"
+				}
+				lines = append(lines, dimStyle.Render(count))
+				shown := c.files
+				if room := detailHeight - 2; len(shown) > room {
+					shown = shown[:room-1]
+				}
+				for _, f := range shown {
+					status := lipgloss.NewStyle().Foreground(statusColors[f.Status]).Render(string(f.Status))
+					lines = append(lines, status+" "+truncatePath(f.Path, width-2))
+				}
+				if more := len(c.files) - len(shown); more > 0 {
+					lines = append(lines, dimStyle.Render(fmt.Sprintf("… %d more", more)))
+				}
+			}
+		}
+	}
+	for len(lines) < detailHeight-1 {
+		lines = append(lines, "")
+	}
+	return lines
+}
+
+func truncatePath(path string, width int) string {
+	if w := ansi.StringWidth(path); w > width {
+		return "…" + ansi.TruncateLeft(path, w-width+1, "")
+	}
+	return path
 }
 
 func renderRefs(refs []string) string {

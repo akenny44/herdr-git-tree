@@ -11,9 +11,10 @@ Go TUI that draws a repository's commit graph. Single `main` package, built with
 | `herdr.go` | `--herdr-open`, the herdr plugin's `open` action: reads `HERDR_PLUGIN_CONTEXT_JSON`, takes the focused pane's live `foreground_cwd` (`herdr pane get`) up to its repo root, then focuses the workspace's tree tab on that root (`findTreeTab`) or runs `herdr plugin pane open` and renames the new tab `Git-tree` (`tabLabel`) |
 | `herdr-plugin.toml` | herdr plugin manifest: `tree` pane (`bin/git-tree`, new tab) and `open` action |
 | `scripts/build.sh` | Plugin build step (`go build -o bin/git-tree .`), run by `herdr plugin install` only |
-| `repo.go` | `LoadCommits`: reads refs and commits with go-git, labels refs, sorts children-before-parents by committer date (`sortCommits`) |
+| `repo.go` | `LoadCommits`: reads refs and commits with go-git, labels refs, sorts children-before-parents by committer date (`sortCommits`); `ChangedFiles`: a commit's files against its first parent (A/M/D/R, renames detected) |
 | `graph.go` | `Layout`: assigns lanes and builds one `Row` of `Cell`s (glyph + fill + colors) per commit |
-| `ui.go` | Bubble Tea model: scrolling list, cursor, detail panel, styling with lipgloss |
+| `ui.go` | Bubble Tea model: scrolling list, cursor, detail panel split in two (commit info left, changed files right, diffed lazily on selection and cached per hash), styling with lipgloss |
+| `repo_test.go`, `ui_test.go` | `ChangedFiles` on a temporary repository; mouse selection and the detail panel's file list |
 | `graph_test.go` | Layout and ordering tests, written as expected graph strings via `Row.String()` |
 
 ## Constraints

@@ -26,7 +26,7 @@ func main() {
 		path = abs
 	}
 
-	commits, err := LoadCommits(path)
+	repo, commits, err := LoadCommits(path)
 	if errors.Is(err, git.ErrRepositoryNotExists) {
 		fail("%s is not a git repository", path)
 	}
@@ -37,7 +37,7 @@ func main() {
 		fail("%s has no commits yet", path)
 	}
 
-	if _, err := tea.NewProgram(newModel(path, commits), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
+	if _, err := tea.NewProgram(newModel(path, repo, commits), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
 		fail("%v", err)
 	}
 }

@@ -2,12 +2,14 @@ package main
 
 import (
 	"container/heap"
+	"context"
 	"errors"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/utils/merkletrie"
 )
 
 type Commit struct {
@@ -23,10 +25,10 @@ type Commit struct {
 
 // LoadCommits returns every commit reachable from HEAD, branches, remotes and
 // tags, children always before their parents, newest first otherwise.
-func LoadCommits(path string) ([]*Commit, error) {
+func LoadCommits(path string) (*git.Repository, []*Commit, error) {
 	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	labels := map[plumbing.Hash][]string{}
@@ -46,7 +48,7 @@ func LoadCommits(path string) ([]*Commit, error) {
 
 	refs, err := repo.References()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Type() != plumbing.HashReference {
@@ -79,7 +81,7 @@ func LoadCommits(path string) ([]*Commit, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	commits := map[plumbing.Hash]*Commit{}
@@ -95,13 +97,65 @@ func LoadCommits(path string) ([]*Commit, error) {
 			continue // shallow clone: history stops here
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		commits[h] = newCommit(c, labels[h])
 		queue = append(queue, c.ParentHashes...)
 	}
 
-	return sortCommits(commits), nil
+	return repo, sortCommits(commits), nil
+}
+
+// FileChange is one line of `git show --name-status`: Status is A, M, D or R.
+type FileChange struct {
+	Status byte
+	Path   string
+}
+
+// ChangedFiles lists the files commit h changes against its first parent, so a
+// merge shows what it brought into its branch. A root commit adds every file.
+func ChangedFiles(repo *git.Repository, h plumbing.Hash) ([]FileChange, error) {
+	c, err := repo.CommitObject(h)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := c.Tree()
+	if err != nil {
+		return nil, err
+	}
+	var parentTree *object.Tree
+	if c.NumParents() > 0 {
+		parent, err := c.Parent(0)
+		if err != nil {
+			return nil, err
+		}
+		if parentTree, err = parent.Tree(); err != nil {
+			return nil, err
+		}
+	}
+	changes, err := object.DiffTreeWithOptions(context.Background(), parentTree, tree, object.DefaultDiffTreeOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]FileChange, 0, len(changes))
+	for _, ch := range changes {
+		action, err := ch.Action()
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case action == merkletrie.Insert:
+			files = append(files, FileChange{'A', ch.To.Name})
+		case action == merkletrie.Delete:
+			files = append(files, FileChange{'D', ch.From.Name})
+		case ch.From.Name != ch.To.Name:
+			files = append(files, FileChange{'R', ch.From.Name + " → " + ch.To.Name})
+		default:
+			files = append(files, FileChange{'M', ch.To.Name})
+		}
+	}
+	return files, nil
 }
 
 func newCommit(c *object.Commit, refs []string) *Commit {
