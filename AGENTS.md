@@ -8,7 +8,7 @@ Go TUI that draws a repository's commit graph. Single `main` package, built with
 | File | Role |
 |---|---|
 | `main.go` | Argument (repo path, default `.`, or `--herdr-open`), error reporting, starts the Bubble Tea program |
-| `herdr.go` | `--herdr-open`, the herdr plugin's `open` action: reads `HERDR_PLUGIN_CONTEXT_JSON`, takes the focused pane's live `foreground_cwd` (`herdr pane get`) up to its repo root, then focuses the workspace's tree tab on that root (`findTreeTab`) or runs `herdr plugin pane open` |
+| `herdr.go` | `--herdr-open`, the herdr plugin's `open` action: reads `HERDR_PLUGIN_CONTEXT_JSON`, takes the focused pane's live `foreground_cwd` (`herdr pane get`) up to its repo root, then focuses the workspace's tree tab on that root (`findTreeTab`) or runs `herdr plugin pane open` and renames the new tab `Git-tree` (`tabLabel`) |
 | `herdr-plugin.toml` | herdr plugin manifest: `tree` pane (`bin/git-tree`, new tab) and `open` action |
 | `scripts/build.sh` | Plugin build step (`go build -o bin/git-tree .`), run by `herdr plugin install` only |
 | `repo.go` | `LoadCommits`: reads refs and commits with go-git, labels refs, sorts children-before-parents by committer date (`sortCommits`) |

@@ -12,6 +12,7 @@ import (
 const (
 	pluginID  = "herdr-git-tree"
 	paneTitle = "git tree" // the manifest pane's title, which herdr uses as its label
+	tabLabel  = "Git-tree"
 )
 
 // openInHerdr is the plugin's `open` action: it opens the tree pane in the
@@ -58,8 +59,25 @@ func openInHerdr() error {
 		args = append(args, "--cwd", cwd)
 	}
 	cmd := exec.Command(herdr, args...)
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	return cmd.Run()
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	var opened struct {
+		Result struct {
+			PluginPane struct {
+				Pane struct {
+					TabID string `json:"tab_id"`
+				} `json:"pane"`
+			} `json:"plugin_pane"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(out, &opened); err != nil || opened.Result.PluginPane.Pane.TabID == "" {
+		return fmt.Errorf("reading the opened pane's tab: %s", out)
+	}
+	return exec.Command(herdr, "tab", "rename", opened.Result.PluginPane.Pane.TabID, tabLabel).Run()
 }
 
 func foregroundCwd(herdr, paneID string) string {
