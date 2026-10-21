@@ -16,7 +16,7 @@ lanes, branch/tag labels and a detail panel for the selected commit.
 ## herdr plugin
 
 In [herdr](https://herdr.dev), `prefix+t` opens the graph of the focused pane's
-repository in a new tab; `q` closes it.
+repository in a new `Git-tree` tab; `q` closes it.
 
 ```sh
 herdr plugin install akenny44/herdr-git-tree
@@ -36,7 +36,7 @@ description = "open git tree in a new tab"
 
 The tab shows the repository the focused pane is in now (its foreground
 process's cwd), not the one it was started in. If the workspace already has a
-git tree tab on that repository, `prefix+t` switches to it instead of opening
+`Git-tree` tab on that repository, `prefix+t` switches to it instead of opening
 another one.
 
 To work on the plugin from a local checkout:
@@ -73,6 +73,8 @@ git-tree <path>   # any other repository
 | `PgUp` / `PgDn`, `Ctrl+B` / `Ctrl+F`, `Space` | Page up / down |
 | `g` / `G`, `Home` / `End` | First / last commit |
 | `q`, `Esc`, `Ctrl+C` | Quit |
+| Click a commit | Select it and show it in the detail panel |
+| Mouse wheel | Move the selection |
 
 The repository is only read, never modified. Commits are ordered like
 `git log --all --date-order`. In a shallow clone, the graph stops where the

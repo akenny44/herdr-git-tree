@@ -48,6 +48,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+	case tea.MouseMsg:
+		switch {
+		case msg.Button == tea.MouseButtonWheelUp:
+			m.cursor--
+		case msg.Button == tea.MouseButtonWheelDown:
+			m.cursor++
+		case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
+			// The list starts below the one-line header.
+			if row := msg.Y - 1; row >= 0 && row < m.listHeight() && m.offset+row < len(m.commits) {
+				m.cursor = m.offset + row
+			}
+		}
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":

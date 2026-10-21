@@ -37,7 +37,7 @@ func main() {
 		fail("%s has no commits yet", path)
 	}
 
-	if _, err := tea.NewProgram(newModel(path, commits), tea.WithAltScreen()).Run(); err != nil {
+	if _, err := tea.NewProgram(newModel(path, commits), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
 		fail("%v", err)
 	}
 }
